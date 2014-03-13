@@ -1,3 +1,3 @@
 #GreenChrome
 ---
-ÕâÊÇÒ»¸öÂÌ»¯Google ChromeµÄ¹¤¾ß
+è¿™æ˜¯ä¸€ä¸ªç»¿åŒ–Google Chromeçš„å·¥å…·
