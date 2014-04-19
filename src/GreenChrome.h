@@ -8,6 +8,7 @@
 #include <windows.h>
 #include <tchar.h>
 #include <shlwapi.h>
+#include <Shlobj.h>
 
 #include "winmm.h"
 #include "StringSplit.h"
