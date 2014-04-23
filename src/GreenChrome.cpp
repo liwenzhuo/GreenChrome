@@ -1,8 +1,6 @@
 #define UNICODE
 #define _UNICODE
 
-#pragma comment(linker, "/OPT:NOWIN98")
-
 #include "GreenChrome.h"
 
 EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
@@ -43,7 +41,7 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 		wchar_t *command = GetCommandLine();
 
 		wchar_t parentPath[MAX_PATH];
-		if(GetParentPath(parentPath) && wcsicmp(parentPath, fullPath)!=0) //父进程不是Chrome
+		if(GetParentPath(parentPath) && _wcsicmp(parentPath, fullPath)!=0) //父进程不是Chrome
 		{
 			wchar_t *MyCommandLine = (wchar_t *)malloc(1024*20);
 			int i;
@@ -125,11 +123,11 @@ EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 			STARTUPINFO si = {0};
 			PROCESS_INFORMATION pi = {0};
 			si.cb = sizeof(STARTUPINFO);
-			GetStartupInfo(&si);
+			//GetStartupInfo(&si);
 
 			//OutputDebugStringW(MyCommandLine);
 
-			if( CreateProcess(NULL, MyCommandLine, NULL, NULL, false, 0, NULL, 0, &si, &pi) )
+			if (CreateProcess(fullPath, MyCommandLine, NULL, NULL, false, CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT | CREATE_DEFAULT_ERROR_MODE, NULL, 0, &si, &pi))
 			{
 				CloseHandle(pi.hProcess);
 				CloseHandle(pi.hThread);

@@ -41,7 +41,7 @@ void DevicePathToWin32Path(wchar_t *strDevicePath)
 			if (QueryDosDeviceW(szDrive, szName, MAX_PATH))
 			{
 				UINT uNameLen = wcslen(szName);
-				if (wcsnicmp(strDevicePath, szName, uNameLen)==0)
+				if (_wcsnicmp(strDevicePath, szName, uNameLen)==0)
 				{
 					wchar_t szTempFile[MAX_PATH];
 					wsprintfW(szTempFile, L"%s%s", szDrive, strDevicePath + uNameLen);
@@ -53,6 +53,12 @@ void DevicePathToWin32Path(wchar_t *strDevicePath)
 		while (*p);
 	}
 }
+
+#ifndef GetProcessImageFileName
+extern "C" DWORD WINAPI GetProcessImageFileNameW(HANDLE hProcess, LPWSTR lpImageFileName, DWORD nSize);
+#endif
+
+#pragma comment(lib, "psapi.lib")
 
 bool GetParentPath(wchar_t* path)
 {
