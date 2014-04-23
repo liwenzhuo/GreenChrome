@@ -54,12 +54,6 @@ void DevicePathToWin32Path(wchar_t *strDevicePath)
 	}
 }
 
-#ifndef GetProcessImageFileName
-extern "C" DWORD WINAPI GetProcessImageFileNameW(HANDLE hProcess, LPWSTR lpImageFileName, DWORD nSize);
-#endif
-
-#pragma comment(lib, "psapi.lib")
-
 bool GetParentPath(wchar_t* path)
 {
 	HANDLE hProcess = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, FALSE, GetParentProcessID());

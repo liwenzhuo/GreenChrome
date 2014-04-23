@@ -12,6 +12,7 @@
 #include <tchar.h>
 #include <shlwapi.h>
 #include <shlobj.h>
+#include <psapi.h>
 
 #include "winmm.h"
 #include "StringSplit.h"
@@ -23,5 +24,6 @@
 #define EXPORT EXTERNC __declspec(dllexport) void __cdecl
 
 #pragma comment(lib, "shlwapi.lib")
+#pragma comment(lib, "psapi.lib")
 
 #endif // __MAIN_H__
