@@ -12,6 +12,7 @@ bool isEndWith(const wchar_t *path,const wchar_t* ext)
 
 HRESULT ResolveIt(wchar_t *lpszLinkFile, wchar_t *lpszPath, int iPathBufferSize)
 {
+	CoInitialize(NULL);
 	IShellLink* psl;
 	WIN32_FIND_DATA wfd;
 
@@ -37,6 +38,7 @@ HRESULT ResolveIt(wchar_t *lpszLinkFile, wchar_t *lpszPath, int iPathBufferSize)
 		}
 		psl->Release();
 	}
+	CoUninitialize();
 	return hres;
 }
 
@@ -60,12 +62,12 @@ void AutoLockLnk(wchar_t *fullPath)
 				wsprintf(absolute_path, L"%s%s", lnkPath, ffbuf.cFileName);
 
 				DWORD dwAttrs = GetFileAttributes(absolute_path);
-				if( !IS_FlAG(dwAttrs, FILE_ATTRIBUTE_READONLY) ) //灏氭湭璁剧疆鍙
+				if( !IS_FlAG(dwAttrs, FILE_ATTRIBUTE_READONLY) ) //尚未设置只读
 				{
 					wchar_t szLinkFileExePath[MAX_PATH]={0};
 					ResolveIt(absolute_path, szLinkFileExePath, MAX_PATH);
 
-					if(_wcsicmp(szLinkFileExePath, fullPath)==0) //lnk鏂囦欢鍒氬ソ鎸囧悜Chrome
+					if(_wcsicmp(szLinkFileExePath, fullPath)==0) //lnk文件刚好指向Chrome
 					{
 						SetFileAttributes(absolute_path, dwAttrs | FILE_ATTRIBUTE_READONLY);
 					}
