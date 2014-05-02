@@ -3,26 +3,108 @@
 
 #include "GreenChrome.h"
 
-DWORD WinMainBak;
+
+#define MAX_SIZE 32767
+
+//Ëá™Âä®Ê∑ªÂä†ÂºïÂè∑
+void AppendPath(wchar_t *path, const wchar_t* append)
+{
+	int len = wcslen(append) + 1 + 2;
+	wchar_t *temp = (wchar_t *)malloc(len*sizeof(wchar_t));
+	wcscpy(temp, append);
+
+	PathQuoteSpacesW(temp);
+	wcscat(path, temp);
+
+	free(temp);
+}
+
+// ÊûÑÈÄ†Êñ∞ÂëΩ‰ª§Ë°å
+void NewCommand(const wchar_t *iniPath,const wchar_t *exePath,const wchar_t *fullPath)
+{
+	wchar_t *MyCommandLine = (wchar_t *)malloc(MAX_SIZE);
+	MyCommandLine[0] = 0;
+
+	int nArgs;
+	LPWSTR *szArglist = CommandLineToArgvW(GetCommandLineW(), &nArgs);
+	for(int i=0; i<nArgs; i++)
+	{
+		// ÂéüÊ†∑ÊãºÊé•ÂèÇÊï∞
+		if(i!=0) wcscat(MyCommandLine, L" ");
+		AppendPath(MyCommandLine, szArglist[i]);
+
+		if(i==0) //Âú®ËøõÁ®ãË∑ØÂæÑÂêéÈù¢ËøΩÂä†ÂèÇÊï∞
+		{
+			wchar_t *temp = (wchar_t *)malloc(MAX_SIZE);
+
+			wchar_t ConfigList[32767];
+			GetPrivateProfileSectionW(L"ËøΩÂä†ÂèÇÊï∞", ConfigList, 32767, iniPath);
+
+			wchar_t *line = ConfigList;
+			while (line && *line)
+			{
+				wchar_t *equ = wcschr(line, '=');
+				if(equ)
+				{
+					//ÊúâÁ≠âÂè∑
+					*(equ) = 0;
+					wcscat(MyCommandLine, L" ");
+					wcscat(MyCommandLine, line);
+					wcscat(MyCommandLine, L"=");
+					*(equ) = '=';
+
+					ExpandEnvironmentStringsW(equ+1, temp, MAX_SIZE);
+					wchar_t *_temp = replace(temp, L"%app%", exePath);
+					AppendPath(MyCommandLine, _temp);
+					free(_temp);
+				}
+				else
+				{
+					//Êó†Á≠âÂè∑
+					wcscat(MyCommandLine, L" ");
+					AppendPath(MyCommandLine, line);
+				}
+				line += wcslen(line) + 1;
+			}
+			free(temp);
+		}
+	}
+	LocalFree(szArglist);
+
+	//ÂêØÂä®ËøõÁ®ã
+	STARTUPINFOW si = {0};
+	PROCESS_INFORMATION pi = {0};
+	si.cb = sizeof(STARTUPINFO);
+	//GetStartupInfo(&si);
+
+	//OutputDebugStringW(MyCommandLine);
+	if (CreateProcessW(fullPath, MyCommandLine, NULL, NULL, false, CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT | CREATE_DEFAULT_ERROR_MODE, NULL, 0, &si, &pi))
+	{
+		CloseHandle(pi.hProcess);
+		CloseHandle(pi.hThread);
+		ExitProcess(0);
+	}
+	free(MyCommandLine);
+}
 
 void GreenChrome()
 {
-	//exe»´¬∑æ∂
+	//exeÂÖ®Ë∑ØÂæÑ
 	wchar_t fullPath[MAX_PATH];
-	GetModuleFileName(NULL, fullPath, MAX_PATH);
+	GetModuleFileNameW(NULL, fullPath, MAX_PATH);
 
-	//exeÀ˘‘⁄¬∑æ∂
+	//exeÊâÄÂú®Ë∑ØÂæÑ
 	wchar_t exePath[MAX_PATH];
 	wcscpy(exePath, fullPath);
-	PathRemoveFileSpec(exePath);
+	PathRemoveFileSpecW(exePath);
 
-	//ini¬∑æ∂
+	//iniË∑ØÂæÑ
 	wchar_t iniPath[MAX_PATH];
 	wcscpy(iniPath, exePath);
 	wcscat(iniPath, L"\\GreenChrome.ini");
 
-	// …˙≥…ƒ¨»œiniŒƒº˛
-	if(!PathFileExists(iniPath))
+	// ÁîüÊàêÈªòËÆ§iniÊñá‰ª∂
+	if(!PathFileExistsW(iniPath))
 	{
 		FILE *fp = _wfopen(iniPath, L"wb");
 		if(fp)
@@ -32,139 +114,27 @@ void GreenChrome()
 		}
 	}
 
-	//◊‘∂Ø∏¯»ŒŒÒ¿∏pinµƒøÏΩ›∑Ω Ωº”…œ÷ª∂¡ Ù–‘
+	//Ëá™Âä®Áªô‰ªªÂä°Ê†èpinÁöÑÂø´Êç∑ÊñπÂºèÂä†‰∏äÂè™ËØªÂ±ûÊÄß
 	AutoLockLnk(fullPath);
 
-	//ππ‘Ï√¸¡Ó––
-	wchar_t *command = GetCommandLine();
-
+	//Áà∂ËøõÁ®ã‰∏çÊòØChromeÔºåÂàôÈúÄË¶ÅÂêØÂä®GreenChromeÂäüËÉΩ
 	wchar_t parentPath[MAX_PATH];
-	if(GetParentPath(parentPath) && _wcsicmp(parentPath, fullPath)!=0) //∏∏Ω¯≥Ã≤ª «Chrome
+	if(GetParentPath(parentPath) && _wcsicmp(parentPath, fullPath)!=0)
 	{
-		wchar_t *MyCommandLine = (wchar_t *)malloc(1024*20);
-		int i;
-		int nArgs;
-		LPWSTR *szArglist = CommandLineToArgvW(command, &nArgs);
-		for(i=0; i<nArgs; i++)
-		{
-			if(i==0) //‘⁄Ω¯≥Ã¬∑æ∂∫Û√Ê◊∑º”≤Œ ˝
-			{
-				wcscpy(MyCommandLine, L"\"");
-				wcscat(MyCommandLine, szArglist[i]);
-				wcscat(MyCommandLine, L"\"");
-
-				wchar_t *AddList = (wchar_t *)malloc(1024*20);
-				wchar_t *temp = (wchar_t *)malloc(1024*20);
-				int AddListLen;
-				AddListLen = GetPrivateProfileSection(L"◊∑º”≤Œ ˝", AddList, 1024*20, iniPath);
-
-				StringSplit CommandList(AddList,0,AddListLen);
-				for(int j=0;j<CommandList.GetCount();j++)
-				{
-					StringSplit add_cmd(CommandList.GetIndex(j),'=');
-					if(add_cmd.GetCount()==2) // xxx=bbb
-					{
-						if( !wcsstr(command,add_cmd.GetIndex(0)) )
-						{
-							wcscat(MyCommandLine, L" ");
-							wcscat(MyCommandLine, add_cmd.GetIndex(0));
-							wcscat(MyCommandLine, L"=");
-
-							ExpandEnvironmentStrings(add_cmd.GetIndex(1), temp, 1024*20);
-							wchar_t *_temp = replace(temp, L"%app%", exePath);
-							if(wcschr(_temp,' ') && _temp[0]!='\"')
-							{
-								wcscat(MyCommandLine, L"\"");
-								wcscat(MyCommandLine, _temp);
-								wcscat(MyCommandLine, L"\"");
-							}
-							else
-							{
-								wcscat(MyCommandLine, _temp);
-							}
-							free(_temp);
-						}
-					}
-					else //≤ª∫¨µ»∫≈  xxxxx
-					{
-						if( !wcsstr(command,CommandList.GetIndex(j)) )
-						{
-							wcscat(MyCommandLine, L" ");
-							if(wcschr(CommandList.GetIndex(j),' ') && CommandList.GetIndex(j)[0]!='\"')
-							{
-								wcscat(MyCommandLine, L"\"");
-								wcscat(MyCommandLine, CommandList.GetIndex(j));
-								wcscat(MyCommandLine, L"\"");
-
-							}
-							else
-							{
-								wcscat(MyCommandLine, CommandList.GetIndex(j));
-							}
-						}
-					}
-				}
-				free(temp);
-				free(AddList);
-			}
-			else
-			{
-				// ‘≠—˘∆¥Ω”≤Œ ˝
-				wcscat(MyCommandLine, L" \"");
-				wcscat(MyCommandLine, szArglist[i]);
-				wcscat(MyCommandLine, L"\"");
-			}
-		}
-		LocalFree(szArglist);
-
-		//∆Ù∂ØΩ¯≥Ã
-		STARTUPINFO si = {0};
-		PROCESS_INFORMATION pi = {0};
-		si.cb = sizeof(STARTUPINFO);
-		//GetStartupInfo(&si);
-
-		//OutputDebugStringW(MyCommandLine);
-
-		if (CreateProcess(fullPath, MyCommandLine, NULL, NULL, false, CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT | CREATE_DEFAULT_ERROR_MODE, NULL, 0, &si, &pi))
-		{
-			CloseHandle(pi.hProcess);
-			CloseHandle(pi.hThread);
-			ExitProcess(NULL);
-		}
+		// Ê†πÊçÆÈÖçÁΩÆÊñá‰ª∂ÊèíÂÖ•È¢ùÂ§ñÁöÑÂëΩ‰ª§Ë°åÂèÇÊï∞
+		NewCommand(iniPath, exePath, fullPath);
 	}
-
-	__asm call WinMainBak
 }
 
 EXTERNC BOOL WINAPI DllMain(HINSTANCE hModule, DWORD dwReason, LPVOID pv)
 {
 	if (dwReason == DLL_PROCESS_ATTACH)
 	{
-		//±£≥÷œµÕ≥dll‘≠”–π¶ƒ‹
-		LoadSysDll();
+		//‰øùÊåÅÁ≥ªÁªüdllÂéüÊúâÂäüËÉΩ
+		LoadSysDll(hModule);
 
-		//ªÒ»°≥Ã–Ú»Îø⁄µ„
-		MODULEINFO mi;
-		GetModuleInformation(GetCurrentProcess(), GetModuleHandle(NULL), &mi, sizeof(MODULEINFO));
-
-		//ºÏ≤È»Îø⁄µ„ «∑Ò «E8
-		BYTE read[5];
-		ReadProcessMemory(GetCurrentProcess() ,(LPVOID)mi.EntryPoint, read, sizeof(read), 0);
-		if(read[0]==0xE8)
-		{
-			//±∏∑›»Îø⁄µ„
-			WinMainBak = (DWORD)mi.EntryPoint + *(DWORD *)&read[1] + 5;
-
-			BYTE JmpCode[] =
-			{
-				0xE8,0x90,0x90,0x90,0x90,	//call xxxx
-			};
-
-			*(DWORD *)&JmpCode[1] = (DWORD)GreenChrome - (DWORD)mi.EntryPoint - 5;
-
-			//‘⁄»Îø⁄¥¶º”»ÎÃ¯◊™
-			::WriteProcessMemory(GetCurrentProcess(), (LPVOID)mi.EntryPoint, &JmpCode, sizeof(JmpCode),NULL);
-		}
+		//‰øÆÊîπÁ®ãÂ∫èÂÖ•Âè£ÁÇπ
+		InstallLoader();
 	}
 	return TRUE;
 }

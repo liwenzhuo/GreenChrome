@@ -1,22 +1,23 @@
-typedef	struct
-{
-	DWORD ExitStatus;
-	DWORD PebBaseAddress;
-	DWORD AffinityMask;
-	DWORD BasePriority;
-	ULONG UniqueProcessId;
-	ULONG InheritedFromUniqueProcessId;
-} PROCESS_BASIC_INFORMATION;
+typedef LONG (WINAPI *QueryInformationProcess)(HANDLE,UINT,PVOID,ULONG,PULONG);
 
-typedef	LONG (WINAPI *PROCNTQSIP)(HANDLE,UINT,PVOID,ULONG,PULONG);
+typedef struct
+{
+	MWORD ExitStatus;
+	MWORD PebBaseAddress;
+	MWORD AffinityMask;
+	MWORD BasePriority;
+	MWORD UniqueProcessId;
+	MWORD InheritedFromUniqueProcessId;
+} PROCESS_BASIC_INFORMATION;
 
 DWORD GetParentProcessID()
 {
-	PROCNTQSIP NtQueryInformationProcess = (PROCNTQSIP)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
+	QueryInformationProcess NtQueryInformationProcess = (QueryInformationProcess)GetProcAddress(GetModuleHandleA("ntdll"), "NtQueryInformationProcess");
 	if (NtQueryInformationProcess)
 	{
 		PROCESS_BASIC_INFORMATION pbi;
-		LONG status = NtQueryInformationProcess(GetCurrentProcess(), NULL, (PVOID)&pbi, sizeof(PROCESS_BASIC_INFORMATION), NULL);
+		LONG status = NtQueryInformationProcess(GetCurrentProcess(), 0, (PVOID)&pbi, sizeof(pbi), NULL);
+
 		if(!status)
 		{
 			return pbi.InheritedFromUniqueProcessId;
@@ -44,6 +45,7 @@ void DevicePathToWin32Path(wchar_t *strDevicePath)
 				if (_wcsnicmp(strDevicePath, szName, uNameLen)==0)
 				{
 					wchar_t szTempFile[MAX_PATH];
+
 					wsprintfW(szTempFile, L"%s%s", szDrive, strDevicePath + uNameLen);
 					wcscpy(strDevicePath, szTempFile);
 				}
@@ -65,5 +67,6 @@ bool GetParentPath(wchar_t* path)
 		DevicePathToWin32Path(path);
 		return true;
 	}
+
 	return false;
 }

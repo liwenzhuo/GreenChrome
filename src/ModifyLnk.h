@@ -1,5 +1,4 @@
-
-bool isEndWith(const wchar_t *path,const wchar_t* ext)
+锘縝ool isEndWith(const wchar_t *path,const wchar_t* ext)
 {
 	if(!path || !ext) return false;
 	int len1 = wcslen(path);
@@ -13,11 +12,11 @@ bool isEndWith(const wchar_t *path,const wchar_t* ext)
 HRESULT ResolveIt(wchar_t *lpszLinkFile, wchar_t *lpszPath, int iPathBufferSize)
 {
 	CoInitialize(NULL);
-	IShellLink* psl;
+	IShellLinkW* psl;
 	WIN32_FIND_DATA wfd;
 
 	*lpszPath = '\0';
-	HRESULT hres = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLink, (LPVOID*)&psl);
+	HRESULT hres = CoCreateInstance(CLSID_ShellLink, NULL, CLSCTX_INPROC_SERVER, IID_IShellLinkW, (LPVOID*)&psl);
 	if (SUCCEEDED(hres))
 	{
 		IPersistFile* ppf;
@@ -31,7 +30,7 @@ HRESULT ResolveIt(wchar_t *lpszLinkFile, wchar_t *lpszPath, int iPathBufferSize)
 
 				if (SUCCEEDED(hres))
 				{
-					hres = psl->GetPath(lpszPath, MAX_PATH, (WIN32_FIND_DATA*)&wfd, SLGP_RAWPATH);
+					hres = psl->GetPath(lpszPath, MAX_PATH, (WIN32_FIND_DATAW*)&wfd, SLGP_RAWPATH);
 				}
 			}
 			ppf->Release();
@@ -45,13 +44,13 @@ HRESULT ResolveIt(wchar_t *lpszLinkFile, wchar_t *lpszPath, int iPathBufferSize)
 void AutoLockLnk(wchar_t *fullPath)
 {
 	wchar_t lnkPath[MAX_PATH];
-	ExpandEnvironmentStrings(L"%appdata%\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar\\", lnkPath, MAX_PATH);
+	ExpandEnvironmentStringsW(L"%appdata%\\Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar\\", lnkPath, MAX_PATH);
 
 	wchar_t find[MAX_PATH];
-	_tcscpy(find, lnkPath);
-	_tcscat(find, L"*.*");
-	WIN32_FIND_DATA ffbuf;
-	HANDLE hfind = FindFirstFile(find, &ffbuf);
+	wcscpy(find, lnkPath);
+	wcscat(find, L"*.*");
+	WIN32_FIND_DATAW ffbuf;
+	HANDLE hfind = FindFirstFileW(find, &ffbuf);
 	if (hfind != INVALID_HANDLE_VALUE)
 	{
 		do
@@ -59,23 +58,23 @@ void AutoLockLnk(wchar_t *fullPath)
 			if( isEndWith(ffbuf.cFileName, L".lnk") )
 			{
 				wchar_t absolute_path[MAX_PATH];
-				wsprintf(absolute_path, L"%s%s", lnkPath, ffbuf.cFileName);
+				wsprintfW(absolute_path, L"%s%s", lnkPath, ffbuf.cFileName);
 
-				DWORD dwAttrs = GetFileAttributes(absolute_path);
-				if( !IS_FlAG(dwAttrs, FILE_ATTRIBUTE_READONLY) ) //尚未设置只读
+				DWORD dwAttrs = GetFileAttributesW(absolute_path);
+				if( !IS_FlAG(dwAttrs, FILE_ATTRIBUTE_READONLY) ) //灏氭湭璁剧疆鍙
 				{
 					wchar_t szLinkFileExePath[MAX_PATH]={0};
 					ResolveIt(absolute_path, szLinkFileExePath, MAX_PATH);
 
-					if(_wcsicmp(szLinkFileExePath, fullPath)==0) //lnk文件刚好指向Chrome
+					if(_wcsicmp(szLinkFileExePath, fullPath)==0) //lnk鏂囦欢鍒氬ソ鎸囧悜Chrome
 					{
-						SetFileAttributes(absolute_path, dwAttrs | FILE_ATTRIBUTE_READONLY);
+						SetFileAttributesW(absolute_path, dwAttrs | FILE_ATTRIBUTE_READONLY);
 					}
 				}
 
 			}
 		}
-		while (FindNextFile(hfind, &ffbuf));
+		while (FindNextFileW(hfind, &ffbuf));
 		FindClose(hfind);
 	}
 }
